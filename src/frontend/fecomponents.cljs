@@ -78,7 +78,9 @@
                   [cast-listitem pod #(setval :detailpod %)]) (alpha-titles
                                    (vals @subinfoc)))])
 
-(defn detail-top [pod subsc fun setval eps]
+(def audiotag #(.getElementById js/document "audioplayer"))
+
+(defn detail-top [pod subsc fun setval eps nowplayingc playstatus]
   [:div {:class "detailtopview"}
    [:div {:class "dtvblurc"}
     [:img {:class "dtvblur" :src (:image pod)}]]
@@ -97,10 +99,19 @@
         [fa/FaPlus]
         ])
 
+     (if (and (first eps) (and (= (first eps) @nowplayingc) (:playing? @playstatus)))
      [:button {:class "dtvplaybutton"
-               :on-click #(do (setval :nowplaying (first eps)))}
-      [fa/FaPlay ]
+               :on-click #(.pause (audiotag))}
+      [fa/FaPause]
       ]
+     [:button {:class "dtvplaybutton"
+               :on-click #(do (setval :nowplaying (first eps))
+                             (if (= (first eps) @nowplayingc)
+                               (.play (audiotag)))
+                              )}
+      [fa/FaPlay]
+      ]
+     )
      ]
     [:div {:class "dtvtitle"}
      (:title pod)]
@@ -126,13 +137,12 @@
    ])
 
 
-(defn detail-view [detailpod eps setval subsc modsub]
+(defn detail-view [detailpod eps setval subsc modsub nowplayingc playstatus]
   [:div {:id "detail-view" :class "viewcolumn"}
-   [detail-top detailpod subsc  #(modsub %1 (:itunesID %2) true) setval (get @eps (:itunesID detailpod))]
+   [detail-top detailpod subsc  #(modsub %1 (:itunesID %2) true) setval (get @eps (:itunesID detailpod)) nowplayingc playstatus]
    [eps-view (get @eps (:itunesID detailpod)) setval]
    ()])
 
-(def audiotag #(.getElementById js/document "audioplayer"))
 
 (defn left-pad [n] (.padStart (str (js/Math.floor n)) 2 "0"))
 
@@ -202,5 +212,5 @@
     [top-bar searchoverlay]
     [:div {:id "main-view"}
      [top-view subinfoc setval]
-     [detail-view (or @detailpodc (first (alpha-titles (vals @subinfoc)))) epc setval subsc modsub]
+     [detail-view (or @detailpodc (first (alpha-titles (vals @subinfoc)))) epc setval subsc modsub nowplayingc playstatus]
      [player-view nowplayingc podinfoc playstatus]]]])
