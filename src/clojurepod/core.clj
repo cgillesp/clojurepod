@@ -28,7 +28,7 @@
 (rum/defc common-head [] [:head
                      [:meta {:charset "UTF-8"}]
                      [:meta {:name "viewport" :content "width=device-width, initial-scale=1.0"}]
-                     [:title "PodSearch"]
+                     [:title "Pinkcast"]
                      [:link {:rel "stylesheet" :href "/static/style.css"}]]
   )
 ;;    <script src="cljs-out/dev-main.js"></script>
