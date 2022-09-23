@@ -7,5 +7,6 @@ RUN curl https://download.clojure.org/install/linux-install-1.11.1.1165.sh | sh
 RUN npm install
 ENV IN_DOCKER="TRUE"
 ENV PERSIST_PATH="/etc/clojurepod/"
+RUN mkdir classes
 RUN ./build.sh
 CMD ["java", "-jar", "uber.jar"]
