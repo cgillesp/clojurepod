@@ -11,7 +11,8 @@
 (def global (r/atom {:searchoverlay false}))
 
 (def defaultpods
-  '(1200361736 ;; The Daily
+  '(394775318 ;; 99% Invisible
+    1200361736 ;; The Daily
     1222114325 ;; Up First
     1548604447 ;; Ezra Klein
     1567098962 ;; On Our Watch
