@@ -131,10 +131,14 @@
 
 (defn eps-view [eps setval]
   [:div {:class "eps-view"}
-   (map-indexed (fn [i ep]
-                  ^{:key i}
-                  [ep-listitem ep setval]) eps)
-   ])
+   (if eps
+     (map-indexed (fn [i ep]
+               ^{:key i}
+               [ep-listitem ep setval]) eps)
+     [:div {:class "loadingmessage"} "Loading"]
+
+     )
+      ])
 
 
 (defn detail-view [detailpod eps setval subsc modsub nowplayingc playstatus]

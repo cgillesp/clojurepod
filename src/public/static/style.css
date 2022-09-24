@@ -286,6 +286,12 @@ body,
   white-space: nowrap;
 }
 
+.loadingmessage {
+  text-align: center;
+  padding: 10px;
+  color: #5c5c5c;
+}
+
 .searchsubbutton.unsubbed {
   border: none;
   background-color: #ff859b;
