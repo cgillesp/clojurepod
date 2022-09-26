@@ -25,17 +25,18 @@
                    [cast-searchitem pod #(modsub %1 (:itunesID %2) true) subsc])
                  (:results @searchresults))]])
 
-(defn sidebuttons [fun subsc pod]
+;; let you subscribe or view the itunes page for a podcast
+(defn sidebuttons [change-subs subsc pod]
   [:div {:class "sidebuttons"}
    (if (contains? @subsc (:itunesID pod))
      [:button {:class "subbed searchsubbutton"
-               :on-click #(fun :del pod)} "Unsubscribe"]
+               :on-click #(change-subs :del pod)} "Unsubscribe"]
      [:button {:class "unsubbed searchsubbutton"
-               :on-click #(fun :add pod)} "Subscribe"])
+               :on-click #(change-subs :add pod)} "Subscribe"])
    [:a {:href (:itunesUrl pod) :class "itunesbutton"}
     [fa/FaApple] "iTunes"]])
 
-(defn cast-searchitem [pod fun subsc]
+(defn cast-searchitem [pod change-subs subsc]
   [:div {:class "cast-searchitem cast-listitem"}
    [:div {:class "cast-search-inner"}
     [:div {:class "listitem-imgcontainer"}
@@ -43,12 +44,12 @@
     [:div {:class "listitem-castt"}
      [:div {:class "listitem-castname"} (:title pod)]
      [:div {:class "listitem-castauthor"} (:author pod)]]]
-   [sidebuttons fun subsc pod]])
+   [sidebuttons change-subs subsc pod]])
 
 
 
-(defn cast-listitem [pod fun]
-  [:div {:class "cast-listitem" :on-click #(fun pod)}
+(defn cast-listitem [pod on-click]
+  [:div {:class "cast-listitem" :on-click #(on-click pod)}
    [:div {:class "listitem-imgcontainer"}
     [:img {:class "listitem-img" :src (:image pod)}]]
    [:div {:class "listitem-castt"}
@@ -69,7 +70,7 @@
 
 (def audiotag #(.getElementById js/document "audioplayer"))
 
-(defn detail-top [pod subsc fun setval eps nowplayingc playstatus]
+(defn detail-top [pod subsc change-subs setval eps nowplayingc playstatus]
   [:div {:class "detailtopview"}
    [:div {:class "dtvblurc"}
     [:img {:class "dtvblur" :src (:image pod)}]]
@@ -77,14 +78,18 @@
     [:div {:class "dtvborderitems"}
      [:div {:class "dtvimgcontainer"}
       [:img {:class "dtvimg" :src (:image pod)}]]
+
+     ;; show a subscribe/unsubscribe button depending on
+     ;; subscription status
      (if (and pod (contains? @subsc (:itunesID pod)))
        [:button {:class "dtvsubbedbutton"
-                 :on-click #(do (setval :detailpod pod) (fun :del pod))}
+                 :on-click #(do (setval :detailpod pod) (change-subs :del pod))}
         [fa/FaCheck]]
        [:button {:class "dtvsubbedbutton"
-                 :on-click #(fun :add pod)}
+                 :on-click #(change-subs :add pod)}
         [fa/FaPlus]])
 
+     ;; button that plays/pauses the first episode of the feed
      (if (and (first eps) (and (= (first eps) @nowplayingc) (:playing? @playstatus)))
        [:button {:class "dtvplaybutton"
                  :on-click #(.pause (audiotag))}
@@ -122,7 +127,7 @@
    [eps-view (get @eps (:itunesID detailpod)) setval]
    ()])
 
-
+;; look ma, no NPM!
 (defn left-pad [n] (.padStart (str (js/Math.floor n)) 2 "0"))
 
 (defn hms [n] (let [ni (js/Math.floor n)]
@@ -153,21 +158,26 @@
               ;; of a react warning
               :on-change #(constantly nil)}]]
     [:div {:id "playbuttons"}
+     ;; rewind button
      [:button {:on-click
                #(set! (.-currentTime (audiotag)) (- (.-currentTime (audiotag)) 10))}
       [grr/GrBackTen #js{:className "controlbutton"}]]
-     (if (:playing? @playstatus)
 
+     ;; play/pause button
+     (if (:playing? @playstatus)
        [:button {:on-click #(.pause (audiotag))}
         [grr/GrPauseFill #js{:className "controlbutton"}]]
+
        [:button {:on-click #(.play (audiotag))}
         [grr/GrPlayFill #js{:className "controlbutton"}]])
+
+     ;; fast forward button
      [:button {:on-click
                #(set! (.-currentTime (audiotag)) (+ (.-currentTime (audiotag)) 10))}
       [grr/GrForwardTen #js{:className "controlbutton"}]]]]
+
    [:audio {:id "audioplayer"
-            :src (:fileUrl @nowplaying) :controls false :preload "metadata"}]
-   [:div {:class "player-description"}]])
+            :src (:fileUrl @nowplaying) :controls false :preload "metadata"}]])
 
 (defn main-view [subinfoc detailpodc setval
                  epc nowplayingc playstatus

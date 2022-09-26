@@ -17,7 +17,6 @@
 
 (defn date-column-reader
   [^ResultSet rs ^ResultSetMetaData rsmeta ^Integer i]
-  ;;(println (.getColumnClassName rsmeta i))
   (case (.getColumnClassName rsmeta i)
     "org.h2.api.TimestampWithTimeZone" (.getObject rs i java.time.OffsetDateTime)
     "java.sql.Time" (.getObject rs i java.time.LocalTime)
