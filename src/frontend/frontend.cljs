@@ -2,11 +2,9 @@
   (:require [goog.dom]
             [reagent.core :as r]
             [reagent.dom :as rd]
-            [reagent.dom.server :as rds]
             [ajax.core :as http]
             [fecomponents :as cts]
-            [dexie :as dx]
-            ))
+            [dexie :as dx]))
 
 (def global (r/atom {:searchoverlay false}))
 
@@ -23,8 +21,6 @@
     1469394914 ;; The Journal
     1057255460 ;; NPR Politics
     ))
-
-(def podidlist defaultpods)
 
 (def subsc (r/cursor global [:subs]))
 (def subinfoc (r/cursor global [:subinfo]))
@@ -93,18 +89,17 @@
 (defn idb-delsub [id]
   (-> dxdb (.-subs) (.delete id)))
 ;; ;; then sync pod info
-(declare channels-atom-sync)
 
 
 (swap! global assoc :subs (set []))
 (swap! global assoc :eps {})
 (declare get-channel-info)
-(defn addsub [id fetch?] (do
-                    (swap! global #(assoc % :subs (conj (:subs %) id)))
-                    (idb-addsub id)
-                    (if fetch?
-                      (get-channel-info [id]))
-                    ))
+(defn addsub ([id] (addsub id false))
+  ([id fetch?]
+   (swap! global #(assoc % :subs (conj (:subs %) id)))
+   (idb-addsub id)
+   (when fetch?
+     (get-channel-info [id]))))
 
 (declare delchannel)
 (defn delsub [id] ((swap! global #(assoc % :subs (disj (:subs %) id)))
@@ -114,57 +109,46 @@
 (defn modsub [addordel id fetch?]
   (if (= addordel :add)
     (addsub id fetch?)
-    (if (= addordel :del)
+    (when (= addordel :del)
       (delsub id))))
 
 (declare get-channel-info)
 ;; Add default pods if there aren't any yet
-(defn poppods [in] (do (if (= (count in) 0)
-                         (doall (map addsub defaultpods))
-                         (doall (map addsub in)))
-                       (print (type in))
+(defn poppods [in]  (if (= (count in) 0)
+                      (doall (map addsub defaultpods))
+                      (doall (map addsub in)))
+  (print (type in))
 
-                       (get-channel-info @subsc)
+  (get-channel-info @subsc)
                        ;; (setval :detailpod (first @podinfoc))
-                       ))
+  )
 
 (-> dxdb (.-subs) (.toArray)
     (.then #(->> % (js->clj) (map (fn [x] (get x "id")))
                  (poppods))))
 
-(defn vetchannels [] nil)
 
-(defn updatechannel [] nil)
+(defn pushchannel [chan]  (swap! global
+                                 #(assoc % :subinfo (assoc (:subinfo %)
+                                                           (:itunesID chan) chan)))
 
-(defn pushchannel [chan] (do (swap! global
-                                #(assoc % :subinfo (assoc (:subinfo %)
-                                                          (:itunesID chan) chan)))
-
-                             (swap! global
-                                #(assoc % :podinfo (assoc (:podinfo %)
-                                                          (:itunesID chan) chan)))
-
-                             ))
+  (swap! global
+         #(assoc % :podinfo (assoc (:podinfo %)
+                                   (:itunesID chan) chan))))
 
 (defn delchannel [id] (swap! global
                              #(assoc % :subinfo
                                      (dissoc (:subinfo %) id))))
 
-;; Update feeds & channels
-
-(defn veteps [] nil)
-
-(defn updatefeed [] nil)
-
 ;; :eps -> [id] -> episode data
 
 (defn reformateps [eps ep] (conj (or (get eps (:channel ep)) []) ep))
 
-(defn pushep [epn] (let [ep (js->clj epn :keywordize-keys true)] (do
-                    (swap! global
-                             #(assoc % :eps (assoc (:eps %) (:channel ep) (reformateps (:eps %) ep) )))
-                      )))
+(defn pushep [epn] (let [ep (js->clj epn :keywordize-keys true)]
+                     (swap! global
+                            #(assoc % :eps (assoc (:eps %) (:channel ep) (reformateps (:eps %) ep))))))
 
+#_{:clj-kondo/ignore [:clojure-lsp/unused-public-var]}
 (defn delep [chan epid] (swap! global
                                #(assoc % :eps
                                        (assoc (:eps %) chan
@@ -174,28 +158,27 @@
                                       (assoc mc "lastFetched"
                                              (js/Date.parse (get mc "lastFetched"))))))
 (declare loadfeeds)
-(defn add-info [resp] (do
-                        (doall (map (comp pushchannel
-                                          #(js->clj % :keywordize-keys true)
-                                          parse-fetch-date)
-                                    (js/JSON.parse resp)))
-                        (js/setTimeout loadfeeds 300)
-                        )
-  )
+(defn add-info [resp]
+  (doall (map (comp pushchannel
+                    #(js->clj % :keywordize-keys true)
+                    parse-fetch-date)
+              (js/JSON.parse resp)))
+  (js/setTimeout loadfeeds 300))
 
 (defn ingest-feed [resp]
   (let [parsed (js->clj (js/JSON.parse resp) :keywordize-keys true)]
     (doall (for [ep (get parsed :episodes)]
              (do
-               (if (= nil (get ep :guid)) (print (-> parsed (get :channel) (get :title))))
+               (when (= nil (get ep :guid)) (print (-> parsed (get :channel) (get :title))))
                ;; (print (get ep "guid"))
-               (pushep ep)))))
-  )
+               (pushep ep))))))
 
 (defn loadfeeds [] (doall (for [id (map #(:itunesID %) (vals (:subinfo @global)))]
+                            #_{:clj-kondo/ignore [:unresolved-var]}
                             (http/GET "/api/v1/podcasts/feed/"
-                                      {:params {:q id} :handler ingest-feed}))) nil)
+                              {:params {:q id} :handler ingest-feed}))) nil)
 (defn get-channel-info [ids]
+  #_{:clj-kondo/ignore [:unresolved-var]}
   (http/GET "/api/v1/podcasts/info/" {:params {:q ids} :handler add-info}))
 
 
@@ -208,7 +191,7 @@
 
 ;; Imperative things
 (let [appbox (goog.dom/getElement "app")]
-  (if appbox
+  (when appbox
     (rd/render [app] appbox)))
 
 (reset! playing? false)
@@ -220,23 +203,21 @@
       (swap! searchresults #(if (< (:time %1) time)
                               {:time time
                                :results parsed}
-                              %1))
-      )
-    ))
+                              %1)))))
 
 (add-watch nowplayingc nil #(js/setTimeout (fn [] (-> (.getElementById js/document "audioplayer")
                                                       (.play))) 80))
 
 (add-watch searchquery nil
-           #(js/setTimeout (fn [] (if (and (not (empty? %4)) (= @searchquery %4))
+           #(js/setTimeout (fn [] (when (and (seq %4) (= @searchquery %4))
+                                    #_{:clj-kondo/ignore [:unresolved-var]}
                                     (http/GET "/api/v1/search/"
-                                              {:params {:q %4} :handler
-                                               (add-search-results (js/Date.now))})
-                                    )) 200))
+                                      {:params {:q %4} :handler
+                                       (add-search-results (js/Date.now))}))) 200))
 
 (def audiotag (.getElementById js/document "audioplayer"))
 (.addEventListener audiotag "timeupdate"
-                   #(if (not @barpressed)
+                   #(when (not @barpressed)
                       (reset! currenttime (.-currentTime audiotag))))
 (.addEventListener audiotag "pause"
                    #(reset! playing? false))
@@ -245,8 +226,8 @@
 (.addEventListener audiotag "durationchange"
                    #(reset! duration (.-duration audiotag)))
 (.addEventListener (js/document.getElementById "rangebar") "input"
-                   (fn [e] (do (reset! barpressed true)
-                               (reset! currenttime (.-target.value e)))))
+                   (fn [e] (reset! barpressed true)
+                     (reset! currenttime (.-target.value e))))
 (.addEventListener (js/document.getElementById "rangebar") "change"
-                   (fn [e] (do (reset! barpressed false)
-                               (set! (.-currentTime audiotag) (.-target.value e)))))
+                   (fn [e] (reset! barpressed false)
+                     (set! (.-currentTime audiotag) (.-target.value e))))

@@ -1,10 +1,7 @@
 (ns fecomponents
   (:require
-  [reagent.core :as r]
-  [reagent.core :as rd]
-  ["react-icons/gr" :as grr]
-  ["react-icons/fa" :as fa]
-  ["react-icons/cg" :as cg]))
+   ["react-icons/gr" :as grr]
+   ["react-icons/fa" :as fa]))
 
 (defn top-bar [searchoverlay]
   [:div {:id "top-bar"}
@@ -26,22 +23,17 @@
     (map-indexed (fn [i pod]
                    ^{:key i}
                    [cast-searchitem pod #(modsub %1 (:itunesID %2) true) subsc])
-                 (:results @searchresults))]]
-  )
+                 (:results @searchresults))]])
 
 (defn sidebuttons [fun subsc pod]
   [:div {:class "sidebuttons"}
    (if (contains? @subsc (:itunesID pod))
      [:button {:class "subbed searchsubbutton"
-               :on-click #(fun :del pod)} "Unsubscribe"
-      ]
+               :on-click #(fun :del pod)} "Unsubscribe"]
      [:button {:class "unsubbed searchsubbutton"
-               :on-click #(fun :add pod)} "Subscribe"
-      ])
+               :on-click #(fun :add pod)} "Subscribe"])
    [:a {:href (:itunesUrl pod) :class "itunesbutton"}
-    [fa/FaApple] "iTunes"]
-
-   ])
+    [fa/FaApple] "iTunes"]])
 
 (defn cast-searchitem [pod fun subsc]
   [:div {:class "cast-searchitem cast-listitem"}
@@ -50,10 +42,8 @@
      [:img {:class "listitem-img" :src (:image pod)}]]
     [:div {:class "listitem-castt"}
      [:div {:class "listitem-castname"} (:title pod)]
-     [:div {:class "listitem-castauthor"} (:author pod)]
-     ]]
-   [sidebuttons fun subsc pod]
-   ])
+     [:div {:class "listitem-castauthor"} (:author pod)]]]
+   [sidebuttons fun subsc pod]])
 
 
 
@@ -63,8 +53,7 @@
     [:img {:class "listitem-img" :src (:image pod)}]]
    [:div {:class "listitem-castt"}
     [:div {:class "listitem-castname"} (:title pod)]
-    [:div {:class "listitem-castauthor"} (:author pod)]
-    ]])
+    [:div {:class "listitem-castauthor"} (:author pod)]]])
 
 (defn strip-the [in] (let [reg (last (re-find #"(?i)The (.*)" in))]
                        (if reg reg in)))
@@ -76,7 +65,7 @@
    (map-indexed (fn [i pod]
                   ^{:key i}
                   [cast-listitem pod #(setval :detailpod %)]) (alpha-titles
-                                   (vals @subinfoc)))])
+                                                               (vals @subinfoc)))])
 
 (def audiotag #(.getElementById js/document "audioplayer"))
 
@@ -88,57 +77,43 @@
     [:div {:class "dtvborderitems"}
      [:div {:class "dtvimgcontainer"}
       [:img {:class "dtvimg" :src (:image pod)}]]
-     ;; [:button {:class "dtvsubbedbutton"}]
      (if (and pod (contains? @subsc (:itunesID pod)))
        [:button {:class "dtvsubbedbutton"
                  :on-click #(do (setval :detailpod pod) (fun :del pod))}
-        [fa/FaCheck ]
-        ]
+        [fa/FaCheck]]
        [:button {:class "dtvsubbedbutton"
                  :on-click #(fun :add pod)}
-        [fa/FaPlus]
-        ])
+        [fa/FaPlus]])
 
      (if (and (first eps) (and (= (first eps) @nowplayingc) (:playing? @playstatus)))
-     [:button {:class "dtvplaybutton"
-               :on-click #(.pause (audiotag))}
-      [fa/FaPause]
-      ]
-     [:button {:class "dtvplaybutton"
-               :on-click #(do (setval :nowplaying (first eps))
-                             (if (= (first eps) @nowplayingc)
-                               (.play (audiotag)))
-                              )}
-      [fa/FaPlay]
-      ]
-     )
-     ]
+       [:button {:class "dtvplaybutton"
+                 :on-click #(.pause (audiotag))}
+        [fa/FaPause]]
+       [:button {:class "dtvplaybutton"
+                 :on-click #(do (setval :nowplaying (first eps))
+                                (when (= (first eps) @nowplayingc)
+                                  (.play (audiotag))))}
+        [fa/FaPlay]])]
     [:div {:class "dtvtitle"}
      (:title pod)]
     [:div {:class "dtvauthor"}
      (:author pod)]
     [:div {:class "dtvdesc"}
-     (:description pod)]
-    ]])
+     (:description pod)]]])
 
 (defn ep-listitem [ep setval]
-  [:div {:class "ep-listitem" :on-click #(do (setval :nowplaying ep)
-                                             )}
+  [:div {:class "ep-listitem" :on-click #(do (setval :nowplaying ep))}
    [:div {:class "listitem-epwords"}
     [:div {:class "listitem-castname"} (:title ep)]
-    [:div {:class "listitem-castauthor"} (:author ep)]
-    ]])
+    [:div {:class "listitem-castauthor"} (:author ep)]]])
 
 (defn eps-view [eps setval]
   [:div {:class "eps-view"}
    (if eps
      (map-indexed (fn [i ep]
-               ^{:key i}
-               [ep-listitem ep setval]) eps)
-     [:div {:class "loadingmessage"} "Loading"]
-
-     )
-      ])
+                    ^{:key i}
+                    [ep-listitem ep setval]) eps)
+     [:div {:class "loadingmessage"} "Loading"])])
 
 
 (defn detail-view [detailpod eps setval subsc modsub nowplayingc playstatus]
@@ -152,18 +127,16 @@
 
 (defn hms [n] (let [ni (js/Math.floor n)]
                 (str
-                 (if (< 3600 ni)
-                   (str (js/Math.floor (/ ni 3600))":"))
+                 (when (< 3600 ni)
+                   (str (js/Math.floor (/ ni 3600)) ":"))
                  (left-pad (mod (/ ni 60) 60))
-                 ":" (left-pad (mod ni 60)))
-                ))
+                 ":" (left-pad (mod ni 60)))))
 
 (defn player-view [nowplaying subinfo playstatus]
   [:div {:id "player-view" :class "viewcolumn"}
    [:div {:class "player-coverart"}
-    (if @nowplaying
-      [:img {:src (:image (get @subinfo (:channel @nowplaying)))}])
-    ]
+    (when @nowplaying
+      [:img {:src (:image (get @subinfo (:channel @nowplaying)))}])]
    [:div {:class "player-info"}
     [:div {:id "player-title"} (:title @nowplaying)]
     [:div {:id "player-channel"} (:title (get @subinfo (:channel @nowplaying)))]]
@@ -172,13 +145,10 @@
      [:div (hms (:currenttime @playstatus))]
      [:div (hms (:duration @playstatus))]]
     [:div {:id "playbars"}
-     ;; [:progress {:max (or (:duration @playstatus) 100)
-     ;;             :value (or (:currenttime @playstatus) 0)} ]
      [:input {:type "range"
               :id "rangebar"
               :max (or (:duration @playstatus) 100)
-              :value (or (:currenttime @playstatus
-                                       ) 0)
+              :value (or (:currenttime @playstatus) 0)
               ;; this is stupid but it gets rid
               ;; of a react warning
               :on-change #(constantly nil)}]]
@@ -191,30 +161,29 @@
        [:button {:on-click #(.pause (audiotag))}
         [grr/GrPauseFill #js{:className "controlbutton"}]]
        [:button {:on-click #(.play (audiotag))}
-        [grr/GrPlayFill #js{:className "controlbutton"}]]
-       )
+        [grr/GrPlayFill #js{:className "controlbutton"}]])
      [:button {:on-click
                #(set! (.-currentTime (audiotag)) (+ (.-currentTime (audiotag)) 10))}
       [grr/GrForwardTen #js{:className "controlbutton"}]]]]
    [:audio {:id "audioplayer"
             :src (:fileUrl @nowplaying) :controls false :preload "metadata"}]
-   [:div {:class "player-description"}]
-   ])
+   [:div {:class "player-description"}]])
 
 (defn main-view [subinfoc detailpodc setval
                  epc nowplayingc playstatus
                  searchoverlay searchquery searchresults
                  modsub subsc podinfoc]
   [:div {:id "overall"}
-   (if @searchoverlay
+  ;; shows search overlay if active
+   (when @searchoverlay
      [:<>
       [:div {:class "shade" :on-click #(reset! searchoverlay false)} ""]
       [:div {:class "overlay"}
-       [search-overlay searchquery searchresults modsub subsc]
-       ]])
+       [search-overlay searchquery searchresults modsub subsc]]])
    [:div {:id "appcontainer"}
     [top-bar searchoverlay]
     [:div {:id "main-view"}
+    ;; three panel view
      [top-view subinfoc setval]
      [detail-view (or @detailpodc (first (alpha-titles (vals @subinfoc)))) epc setval subsc modsub nowplayingc playstatus]
      [player-view nowplayingc podinfoc playstatus]]]])

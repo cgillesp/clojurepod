@@ -41,3 +41,4 @@ pom.xml.asc
 
 .hgignore
 .hg/
+.calva/output-window/output.calva-repl
